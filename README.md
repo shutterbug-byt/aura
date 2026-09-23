@@ -1,2 +1,2 @@
-# sentinel
-SENTINEL - Private Persistent Personal Intelligence
+# aura
+AURA : Adaptive User-aware Reasoning Assistant
