@@ -1,184 +1,960 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
+@import url('https://fonts.googleapis.com/css2?family=Michroma&display=swap');
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+* {
+  box-sizing: border-box;
 }
 
-.hero {
-  position: relative;
-
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
+html,
+body,
+#root {
+margin: 0;
+width: 100%;
+height: 100%;
 }
 
-#center {
-  display: flex;
-  flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
-
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
+body {
+  font-family: 'Inter', sans-serif;
+  background: #00030a;
+  color: white;
+  overflow: hidden;
 }
 
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
+button,
+input {
+  font: inherit;
 }
 
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
+button {
+  cursor: pointer;
 }
 
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
+/* =========================
+ *  MAIN SPACE
+ = *======================== */
 
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
+.aura-app {
   position: relative;
   width: 100%;
+  height: 100vh;
+  overflow: hidden;
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+  background:
+  radial-gradient(
+    ellipse at 50% 45%,
+    rgba(10, 25, 55, 0.07) 0%,
+                  rgba(2, 6, 15, 0.04) 35%,
+                  rgba(0, 0, 2, 1) 75%
+  ),
+  #000000;
+}
+
+/* =========================
+ *  STARS
+ = *======================== */
+
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.stars-one {
+  opacity: 0.9;
+
+  background-image:
+  radial-gradient(circle, #fff 1px, transparent 1.5px),
+  radial-gradient(circle, #b9d9ff 1px, transparent 1.5px),
+  radial-gradient(circle, #fff 1px, transparent 1.5px);
+
+  background-size:
+  170px 150px,
+  230px 210px,
+  310px 280px;
+
+  background-position:
+  20px 30px,
+  100px 70px,
+  50px 150px;
+}
+
+.stars-two {
+  opacity: 0.45;
+
+  background-image:
+  radial-gradient(circle, #6ea8ff 1px, transparent 2px),
+  radial-gradient(circle, #fff 1px, transparent 2px);
+
+  background-size:
+  280px 260px,
+  190px 220px;
+
+  background-position:
+  80px 90px,
+  40px 20px;
+}
+
+/* =========================
+ *  NEBULA
+ = *======================== */
+
+.nebula {
+  position: absolute;
+  width: 65vw;
+  height: 45vh;
+  border-radius: 50%;
+  filter: blur(55px);
+  opacity: 0.16;
+  pointer-events: none;
+}
+
+.nebula-one {
+  top: 5%;
+  left: -15%;
+
+  background:
+  radial-gradient(
+    ellipse,
+    rgba(36, 119, 255, 0.8),
+                  rgba(17, 45, 100, 0.3),
+                  transparent 70%
+  );
+
+  transform: rotate(-25deg);
+}
+
+.nebula-two {
+  right: -20%;
+  bottom: 0;
+
+  background:
+  radial-gradient(
+    ellipse,
+    rgba(30, 100, 255, 0.75),
+                  rgba(18, 40, 100, 0.2),
+                  transparent 70%
+  );
+
+  transform: rotate(20deg);
+}
+
+/* =========================
+ *  PLANETS
+ = *======================== */
+
+.planet {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+
+  background:
+  radial-gradient(
+    circle at 35% 30%,
+    rgba(110, 160, 220, 0.35),
+                  rgba(5, 12, 25, 0.95) 60%,
+                  #000 100%
+  );
+
+  box-shadow:
+  inset -25px -15px 45px #000,
+  0 0 30px rgba(64, 140, 255, 0.15);
+}
+
+.planet-left {
+  width: 170px;
+  height: 170px;
+  left: -85px;
+  top: 42%;
+}
+
+.planet-right {
+  width: 100px;
+  height: 100px;
+  right: -40px;
+  bottom: 18%;
+}
+
+/* =========================
+ *  TOP BAR
+ = *======================== */
+
+.topbar {
+  position: absolute;
+  z-index: 10;
+
+  top: 25px;
+  left: 35px;
+  right: 35px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 9px;
+
+  text-shadow: 0 0 14px rgba(170, 210, 255, 0.9);
+}
+
+.brand-symbol {
+  font-size: 34px;
+  letter-spacing: 0;
+
+  color: white;
+
+  filter:
+  drop-shadow(0 0 7px #6aaeff)
+  drop-shadow(0 0 16px #267fff);
+}
+
+.top-actions {
+  display: flex;
+  gap: 24px;
+}
+
+.top-actions button {
+  border: none;
+  background: transparent;
+
+  color: #a9c5eb;
+
+  font-size: 21px;
+
+  transition: 0.2s;
+}
+
+.top-actions button:hover {
+  color: white;
+  text-shadow: 0 0 12px #70aaff;
+}
+
+/* =========================
+ *  ORBITS
+ = *======================== */
+
+.orbit {
+  position: absolute;
+
+  left: 50%;
+  top: 43%;
+
+  border: 1px solid rgba(122, 177, 255, 0.3);
+
+  border-radius: 50%;
+
+  pointer-events: none;
+
+  box-shadow:
+  0 0 5px rgba(100, 170, 255, 0.15),
+  inset 0 0 5px rgba(100, 170, 255, 0.08);
+}
+
+.orbit-one {
+  width: 900px;
+  height: 330px;
+
+  transform:
+  translate(-50%, -50%)
+  rotate(-12deg);
+}
+
+.orbit-two {
+  width: 1000px;
+  height: 360px;
+
+  transform:
+  translate(-50%, -50%)
+  rotate(9deg);
+
+  opacity: 0.55;
+}
+
+.orbit-three {
+  width: 750px;
+  height: 280px;
+
+  transform:
+  translate(-50%, -50%)
+  rotate(-27deg);
+
+  opacity: 0.35;
+}
+
+/* glowing orbit points */
+
+.orbit::after {
+  content: '';
+
+  position: absolute;
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: white;
+
+  box-shadow:
+  0 0 8px white,
+  0 0 20px #4d9dff,
+  0 0 35px #177cff;
+
+  top: 5%;
+  right: 20%;
+}
+
+/* =========================
+ *  HERO
+ = *======================== */
+
+.hero {
+  position: absolute;
+  z-index: 5;
+
+  top: 25%;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  width: 100%;
+
+  text-align: center;
+}
+
+.hero-glow {
+  position: absolute;
+
+  width: 420px;
+  height: 200px;
+
+  left: 50%;
+  top: 20px;
+
+  transform: translateX(-50%);
+
+  background: rgba(40, 115, 255, 0.12);
+
+  filter: blur(80px);
+
+  pointer-events: none;
+}
+
+.hero h1 {
+  position: relative;
+
+  margin: 0;
+
+  font-size: clamp(80px, 10vw, 145px);
+
+  font-weight: 300;
+
+  letter-spacing: 25px;
+
+  color: #f4f8ff;
+
+  text-shadow:
+  0 0 4px white,
+  0 0 12px rgba(150, 200, 255, 0.95),
+  0 0 30px rgba(80, 150, 255, 0.75),
+  0 0 65px rgba(40, 100, 255, 0.45);
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+
+  margin-top: 12px;
+}
+
+.dots span {
+  width: 9px;
+  height: 9px;
+
+  border-radius: 50%;
+
+  background: #f4f8ff;
+
+  box-shadow:
+  0 0 8px white,
+  0 0 18px #67aaff,
+  0 0 30px #277dff;
+}
+
+.hero p {
+  margin-top: 20px;
+
+  font-size: 11px;
+  letter-spacing: 7px;
+
+  color: rgba(170, 194, 225, 0.72);
+}
+
+/* =========================
+ *  TALK BAR
+ = *======================== */
+
+.talk-area {
+  position: absolute;
+  z-index: 10;
+
+  left: 50%;
+  bottom: 17%;
+
+  transform: translateX(-50%);
+
+  width: min(800px, 70vw);
+}
+
+.talk-bar {
+  display: flex;
+  align-items: center;
+
+  height: 78px;
+
+  padding: 8px 10px 8px 30px;
+
+  border: 1px solid rgba(143, 193, 255, 0.7);
+
+  border-radius: 50px;
+
+  background:
+  linear-gradient(
+    100deg,
+    rgba(7, 16, 31, 0.8),
+                  rgba(4, 9, 18, 0.55)
+  );
+
+  backdrop-filter: blur(18px);
+
+  box-shadow:
+  0 0 10px rgba(68, 145, 255, 0.25),
+  0 0 35px rgba(35, 100, 255, 0.12),
+  inset 0 0 20px rgba(100, 170, 255, 0.04);
+}
+
+.spark {
+  margin-right: 25px;
+
+  font-size: 24px;
+
+  color: white;
+
+  text-shadow:
+  0 0 10px #7bb8ff,
+  0 0 22px #358cff;
+}
+
+.talk-bar input {
+  flex: 1;
+
+  min-width: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: white;
+
+  font-size: 18px;
+  font-weight: 300;
+}
+
+.talk-bar input::placeholder {
+  color: #91a2bb;
+}
+
+.divider {
+  height: 38px;
+  width: 1px;
+
+  background: rgba(170, 200, 240, 0.25);
+
+  margin-right: 20px;
+}
+
+.mic-button {
+  width: 55px;
+  height: 55px;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(120, 175, 255, 0.65);
+
+  color: white;
+
+  background: rgba(30, 65, 110, 0.25);
+
+  box-shadow:
+  0 0 15px rgba(70, 145, 255, 0.25);
+
+  transition: 0.2s;
+}
+
+.mic-button:hover {
+  transform: scale(1.05);
+
+  background: rgba(55, 110, 190, 0.35);
+
+  box-shadow:
+  0 0 12px #5fa5ff,
+  0 0 30px rgba(60, 140, 255, 0.45);
+}
+
+/* =========================
+ *  BOTTOM NAV
+ = *======================== */
+
+.bottom-nav {
+  position: absolute;
+  z-index: 10;
+
+  left: 50%;
+  bottom: 6%;
+
+  transform: translateX(-50%);
+
+  display: flex;
+  gap: 65px;
+}
+
+.nav-item {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+
+  min-width: 75px;
+
+  border: none;
+  background: transparent;
+
+  color: #65738b;
+
+  font-size: 13px;
+
+  transition: 0.25s;
+}
+
+.nav-icon {
+  font-size: 25px;
+
+  color: #7c91ad;
+
+  transition: 0.25s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+  color: #dcecff;
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+  color: white;
+
+  text-shadow:
+  0 0 8px #8cc1ff,
+  0 0 20px #368cff;
+}
+
+.nav-item.active::after {
+  content: '';
+
+  position: absolute;
+
+  bottom: -15px;
+
+  width: 70px;
+  height: 2px;
+
+  background: #dcecff;
+
+  box-shadow:
+  0 0 8px #69adff,
+  0 0 20px #3289ff;
+}
+
+/* =========================
+ *  RESPONSIVE
+ = *======================== */
+
+@media (max-width: 800px) {
+  .topbar {
+    left: 20px;
+    right: 20px;
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  .top-actions {
+    gap: 12px;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  .hero {
+    top: 27%;
+  }
+
+  .hero h1 {
+    font-size: 65px;
+    letter-spacing: 13px;
+  }
+
+  .hero p {
+    font-size: 8px;
+    letter-spacing: 3px;
+  }
+
+  .orbit-one {
+    width: 650px;
+  }
+
+  .orbit-two {
+    width: 700px;
+  }
+
+  .talk-area {
+    width: 90vw;
+    bottom: 20%;
+  }
+
+  .bottom-nav {
+    gap: 20px;
+  }
+}
+
+@media (max-height: 700px) {
+  .hero {
+    top: 18%;
+  }
+
+  .talk-area {
+    bottom: 15%;
+  }
+
+  .bottom-nav {
+    bottom: 3%;
+  }
+}
+
+/* =========================================
+ *  LIVING AURA
+ = *======================================== */
+
+/* Slowly move the entire star field */
+.stars-one {
+  animation: starsDrift 80s linear infinite;
+}
+
+.stars-two {
+  animation: starsDriftReverse 110s linear infinite;
+}
+
+@keyframes starsDrift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(-25px, 15px, 0) scale(1.015);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes starsDriftReverse {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(18px, -12px, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+
+/* =========================================
+ *  MOVING NEBULA
+ = *======================================== */
+
+.nebula-one {
+  animation: nebulaMove 45s ease-in-out infinite alternate;
+}
+
+.nebula-two {
+  animation: nebulaMoveReverse 55s ease-in-out infinite alternate;
+}
+
+@keyframes nebulaMove {
+  0% {
+    transform: translate(-20px, 0) rotate(-25deg) scale(1);
+  }
+
+  50% {
+    transform: translate(20px, -15px) rotate(-21deg) scale(1.06);
+  }
+
+  100% {
+    transform: translate(-5px, 15px) rotate(-28deg) scale(1.02);
+  }
+}
+
+@keyframes nebulaMoveReverse {
+  0% {
+    transform: translate(20px, 10px) rotate(20deg) scale(1);
+  }
+
+  50% {
+    transform: translate(-20px, -15px) rotate(24deg) scale(1.08);
+  }
+
+  100% {
+    transform: translate(10px, 5px) rotate(17deg) scale(1.03);
+  }
+}
+
+
+/* =========================================
+ *  AURA LETTERING
+ = *======================================== */
+
+.aura-title {
+  position: relative;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: clamp(18px, 2.2vw, 35px);
+
+  margin: 0;
+
+  font-family: 'Michroma', sans-serif;
+
+  font-size: clamp(70px, 9vw, 135px);
+
+  font-weight: 400;
+
+  letter-spacing: 0;
+
+  color: #f7faff;
+
+  /*
+   *   This is the important part:
+   *   several layers of glow make the logo
+   *   look like it's emitting light.
+   */
+  text-shadow:
+  0 0 3px #ffffff,
+  0 0 7px rgba(180, 215, 255, 0.8),
+  0 0 16px rgba(100, 170, 255, 0.5),
+  0 0 32px rgba(55, 125, 255, 0.28);
+
+  animation: auraBreathing 4.5s ease-in-out infinite;
+}
+
+
+/* Individual letters */
+
+.aura-title span {
+  display: inline-block;
+
+  animation: letterFloat 5s ease-in-out infinite;
+}
+
+.aura-title span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.aura-title span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.aura-title span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+.aura-title span:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+
+/* Main breathing glow */
+
+@keyframes auraBreathing {
+  0%,
+  100% {
+    opacity: 0.9;
+
+    text-shadow:
+    0 0 2px #ffffff,
+    0 0 6px rgba(180, 215, 255, 0.75),
+    0 0 4px rgba(100, 170, 255, 0.45),
+    0 0 30px rgba(55, 125, 255, 0.22);
+  }
+
+  50% {
+    opacity: 1;
+
+    text-shadow:
+    0 0 3px #ffffff,
+    0 0 8px rgba(190, 225, 255, 0.85),
+    0 0 20px rgba(100, 175, 255, 0.55),
+    0 0 40px rgba(55, 125, 255, 0.30);
+  }
+}
+
+
+/* Very subtle individual letter movement */
+
+@keyframes letterFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+
+/* =========================================
+ *  THREE THINKING DOTS
+ = *======================================== */
+
+.dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 15px;
+
+  margin-top: 22px;
+}
+
+.dots span {
+  width: 10px;
+  height: 10px;
+
+  border-radius: 50%;
+
+  background: white;
+
+  box-shadow:
+  0 0 6px white,
+  0 0 14px #9ac8ff,
+  0 0 28px #4b9cff;
+
+  /*
+   *   Important:
+   *   each dot gets the same animation,
+   *   but delayed.
+   */
+  animation: thinkingDot 1.8s ease-in-out infinite;
+}
+
+.dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.dots span:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.dots span:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+
+@keyframes thinkingDot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0) scale(0.75);
+    opacity: 0.35;
+  }
+
+  15%,
+  30% {
+    transform: translateY(-8px) scale(1.15);
+    opacity: 1;
+  }
+}
+
+
+/* =========================================
+ *  ORBIT ANIMATION
+ = *======================================== */
+
+.orbit-one {
+  animation: orbitFloatOne 30s ease-in-out infinite alternate;
+}
+
+.orbit-two {
+  animation: orbitFloatTwo 38s ease-in-out infinite alternate;
+}
+
+.orbit-three {
+  animation: orbitFloatThree 42s ease-in-out infinite alternate;
+}
+
+@keyframes orbitFloatOne {
+  from {
+    transform:
+    translate(-50%, -50%)
+    rotate(-12deg);
+  }
+
+  to {
+    transform:
+    translate(-50%, -50%)
+    rotate(-8deg)
+    scale(1.025);
+  }
+}
+
+@keyframes orbitFloatTwo {
+  from {
+    transform:
+    translate(-50%, -50%)
+    rotate(9deg);
+  }
+
+  to {
+    transform:
+    translate(-50%, -50%)
+    rotate(13deg)
+    scale(1.03);
+  }
+}
+
+@keyframes orbitFloatThree {
+  from {
+    transform:
+    translate(-50%, -50%)
+    rotate(-27deg);
+  }
+
+  to {
+    transform:
+    translate(-50%, -50%)
+    rotate(-23deg)
+    scale(1.04);
   }
 }
