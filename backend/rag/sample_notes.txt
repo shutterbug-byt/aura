@@ -1,0 +1,10 @@
+
+TCP is a connection-oriented transport protocol.
+It provides reliable data delivery using acknowledgments
+and retransmissions.
+
+UDP is a connectionless transport protocol.
+It does not guarantee delivery or ordering.
+
+IP operates at the network layer and is responsible
+for addressing and routing packets.

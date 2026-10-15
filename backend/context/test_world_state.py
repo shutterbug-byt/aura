@@ -15,7 +15,7 @@ def main():
         location="kitchen",
         activity="cooking",
         confidence=0.97,
-        active_task="cook dinner",
+        active_task_id="task_002",
         last_updated=datetime.fromisoformat(
             "2026-10-08T22:00:00"
         ),

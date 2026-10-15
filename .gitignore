@@ -216,3 +216,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# AURA persistent memory database
+data/
+*.db
+*.sqlite
+*.sqlite3

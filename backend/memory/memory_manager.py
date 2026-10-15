@@ -1,6 +1,24 @@
-from dataclasses import dataclass, field
+
+import json
+import sqlite3
+from contextlib import contextmanager
+from dataclasses import dataclass, field, fields
 from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+
+VALID_MEMORY_TYPES = {
+    "working",
+    "episodic",
+    "long_term",
+    "planning",
+}
+
+VALID_MEMORY_SCOPES = {
+    "global",
+    "contextual",
+}
 
 
 @dataclass
@@ -17,38 +35,169 @@ class Memory:
     source: str | None = None
     related_context: dict[str, Any] = field(default_factory=dict)
 
+
 class MemoryManager:
-    def __init__(self):
-        self.memories: dict[str, Memory] = {}
+    def __init__(self, db_path: str | Path | None = None):
+        # Default database: aura/data/aura_memory.db
+        project_root = Path(__file__).resolve().parents[2]
+        default_path = project_root / "data" / "aura_memory.db"
 
-    def add_memory(self, memory: Memory) -> None:
-        valid_types = {
-            "working",
-            "episodic",
-            "long_term",
-            "planning",
-        }
+        self.db_path = Path(db_path) if db_path is not None else default_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
-        valid_scopes = {
-            "global",
-            "contextual",
-        }
+        self._initialize_database()
+        self.memories: dict[str, Memory] = self._load_memories()
 
-        if memory.memory_type not in valid_types:
+    @contextmanager
+    def _connect(self):
+        """Open a SQLite connection and always close it."""
+        connection = sqlite3.connect(
+            str(self.db_path),
+            timeout=10,
+        )
+        connection.row_factory = sqlite3.Row
+
+        try:
+            yield connection
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def _initialize_database(self) -> None:
+        with self._connect() as connection:
+            connection.execute("""
+                CREATE TABLE IF NOT EXISTS memories (
+                    memory_id TEXT PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    memory_type TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    importance REAL NOT NULL,
+                    confidence REAL NOT NULL,
+                    created_at TEXT NOT NULL,
+                    last_used TEXT,
+                    expires_at TEXT,
+                    source TEXT,
+                    related_context TEXT NOT NULL
+                )
+            """)
+
+    @staticmethod
+    def _datetime_to_text(value: datetime | None) -> str | None:
+        if value is None:
+            return None
+        return value.isoformat()
+
+    @staticmethod
+    def _text_to_datetime(value: str | None) -> datetime | None:
+        if value is None:
+            return None
+        return datetime.fromisoformat(value)
+
+    def _validate_memory(self, memory: Memory) -> None:
+        if memory.memory_type not in VALID_MEMORY_TYPES:
             raise ValueError(
                 f"Invalid memory type: {memory.memory_type}"
             )
 
-        if memory.scope not in valid_scopes:
+        if memory.scope not in VALID_MEMORY_SCOPES:
             raise ValueError(
                 f"Invalid memory scope: {memory.scope}"
             )
 
-        if memory.scope == "contextual" and not memory.related_context:
+        if (
+            memory.scope == "contextual"
+            and not memory.related_context
+        ):
             raise ValueError(
                 "Contextual memories must have related_context."
             )
 
+        try:
+            json.dumps(memory.related_context)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                "related_context must be JSON-serializable."
+            ) from exc
+
+    def _save_memory(self, memory: Memory) -> None:
+        self._validate_memory(memory)
+
+        values = (
+            memory.memory_id,
+            memory.content,
+            memory.memory_type,
+            memory.scope,
+            memory.importance,
+            memory.confidence,
+            self._datetime_to_text(memory.created_at),
+            self._datetime_to_text(memory.last_used),
+            self._datetime_to_text(memory.expires_at),
+            memory.source,
+            json.dumps(memory.related_context),
+        )
+
+        with self._connect() as connection:
+            connection.execute("""
+                INSERT INTO memories (
+                    memory_id,
+                    content,
+                    memory_type,
+                    scope,
+                    importance,
+                    confidence,
+                    created_at,
+                    last_used,
+                    expires_at,
+                    source,
+                    related_context
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(memory_id) DO UPDATE SET
+                    content = excluded.content,
+                    memory_type = excluded.memory_type,
+                    scope = excluded.scope,
+                    importance = excluded.importance,
+                    confidence = excluded.confidence,
+                    created_at = excluded.created_at,
+                    last_used = excluded.last_used,
+                    expires_at = excluded.expires_at,
+                    source = excluded.source,
+                    related_context = excluded.related_context
+            """, values)
+
+    def _load_memories(self) -> dict[str, Memory]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM memories"
+            ).fetchall()
+
+        loaded: dict[str, Memory] = {}
+
+        for row in rows:
+            memory = Memory(
+                memory_id=row["memory_id"],
+                content=row["content"],
+                memory_type=row["memory_type"],
+                scope=row["scope"],
+                importance=row["importance"],
+                confidence=row["confidence"],
+                created_at=self._text_to_datetime(row["created_at"]),
+                last_used=self._text_to_datetime(row["last_used"]),
+                expires_at=self._text_to_datetime(row["expires_at"]),
+                source=row["source"],
+                related_context=json.loads(row["related_context"]),
+            )
+
+            loaded[memory.memory_id] = memory
+
+        return loaded
+
+    def add_memory(self, memory: Memory) -> None:
+        self._validate_memory(memory)
+        self._save_memory(memory)
         self.memories[memory.memory_id] = memory
 
     def get_memory(self, memory_id: str) -> Memory | None:
@@ -58,22 +207,42 @@ class MemoryManager:
         return list(self.memories.values())
 
     def delete_memory(self, memory_id: str) -> bool:
-        if memory_id in self.memories:
-            del self.memories[memory_id]
-            return True
+        if memory_id not in self.memories:
+            return False
 
-        return False
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM memories WHERE memory_id = ?",
+                (memory_id,),
+            )
 
-    def remove_expired_memories(self, current_time: datetime | None = None) -> int:
+        del self.memories[memory_id]
+        return True
+
+    def remove_expired_memories(
+        self,
+        current_time: datetime | None = None,
+    ) -> int:
         if current_time is None:
             current_time = datetime.now()
 
         expired_ids = [
             memory_id
             for memory_id, memory in self.memories.items()
-            if memory.expires_at is not None
-            and memory.expires_at <= current_time
+            if (
+                memory.expires_at is not None
+                and memory.expires_at <= current_time
+            )
         ]
+
+        if not expired_ids:
+            return 0
+
+        with self._connect() as connection:
+            connection.executemany(
+                "DELETE FROM memories WHERE memory_id = ?",
+                [(memory_id,) for memory_id in expired_ids],
+            )
 
         for memory_id in expired_ids:
             del self.memories[memory_id]
@@ -86,22 +255,35 @@ class MemoryManager:
         if memory is None:
             return False
 
-        if "memory_type" in updates:
-            valid_types = {
-                "working",
-                "episodic",
-                "long_term",
-                "planning",
-            }
+        
+        allowed_fields = {
+            item.name for item in fields(Memory)
+        }
 
-            if updates["memory_type"] not in valid_types:
-                raise ValueError(
-                    f"Invalid memory type: {updates['memory_type']}"
-                )
+        if "memory_id" in updates:
+            raise ValueError("memory_id cannot be changed.")
 
-        for field_name, value in updates.items():
-            if hasattr(memory, field_name):
-                setattr(memory, field_name, value)
+        unknown_fields = set(updates) - allowed_fields
+
+
+        if unknown_fields:
+            raise ValueError(
+                f"Unknown memory fields: {sorted(unknown_fields)}"
+            )
+
+        # Build and validate a replacement before modifying current state.
+        values = {
+            item.name: getattr(memory, item.name)
+            for item in fields(Memory)
+        }
+        values.update(updates)
+
+        candidate = Memory(**values)
+        self._validate_memory(candidate)
+
+        # Persist first. Only update the in-memory copy after saving works.
+        self._save_memory(candidate)
+        self.memories[memory_id] = candidate
 
         return True
 
@@ -111,35 +293,42 @@ class MemoryManager:
         memory_type: str | None = None,
         min_importance: float = 0.0,
     ) -> list[Memory]:
+        if (
+            memory_type is not None
+            and memory_type not in VALID_MEMORY_TYPES
+        ):
+            raise ValueError(
+                f"Invalid memory type: {memory_type}"
+            )
 
         current_time = datetime.now()
-
         results = []
 
         for memory in self.memories.values():
-
-            # Ignore expired memories
+            # Ignore expired memories.
             if (
                 memory.expires_at is not None
                 and memory.expires_at <= current_time
             ):
                 continue
 
-            # Filter by memory type
+            # Filter by memory type.
             if (
                 memory_type is not None
                 and memory.memory_type != memory_type
             ):
                 continue
 
-            # Filter by importance
+            # Filter by importance.
             if memory.importance < min_importance:
                 continue
 
-            # Filter by context
-            if context is not None:
-                if not self.context_matches(memory, context):
-                    continue
+            # Filter by context.
+            if (
+                context is not None
+                and not self.context_matches(memory, context)
+            ):
+                continue
 
             results.append(memory)
 
@@ -154,6 +343,7 @@ class MemoryManager:
         memory: Memory,
         context: dict[str, Any],
     ) -> bool:
+        # Global memories with no related context match any context.
         if not memory.related_context:
             return True
 
