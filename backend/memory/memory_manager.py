@@ -1,11 +1,16 @@
 
 import json
+import os
 import sqlite3
+
 from contextlib import contextmanager
 from dataclasses import dataclass, field, fields
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+import psycopg
+from psycopg.rows import dict_row
 
 
 VALID_MEMORY_TYPES = {
@@ -37,25 +42,43 @@ class Memory:
 
 
 class MemoryManager:
-    def __init__(self, db_path: str | Path | None = None):
-        # Default database: aura/data/aura_memory.db
-        project_root = Path(__file__).resolve().parents[2]
-        default_path = project_root / "data" / "aura_memory.db"
 
-        self.db_path = Path(db_path) if db_path is not None else default_path
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, db_path: str | Path | None = None):
+        self.database_url = os.getenv("DATABASE_URL")
+
+        # An explicitly supplied db_path means the caller wants SQLite.
+        # Otherwise, use PostgreSQL when DATABASE_URL is configured.
+        self.use_postgres = db_path is None and bool(self.database_url)
+
+        if self.use_postgres:
+            self.db_path = None
+        else:
+            project_root = Path(__file__).resolve().parents[2]
+            default_path = project_root / "data" / "aura_memory.db"
+
+            self.db_path = (
+                Path(db_path) if db_path is not None else default_path
+            )
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
         self._initialize_database()
         self.memories: dict[str, Memory] = self._load_memories()
 
     @contextmanager
     def _connect(self):
-        """Open a SQLite connection and always close it."""
-        connection = sqlite3.connect(
-            str(self.db_path),
-            timeout=10,
-        )
-        connection.row_factory = sqlite3.Row
+        """Open and safely close the configured database connection."""
+        if self.use_postgres:
+            connection = psycopg.connect(
+                self.database_url,
+                row_factory=dict_row,
+                connect_timeout=10,
+            )
+        else:
+            connection = sqlite3.connect(
+                str(self.db_path),
+                timeout=10,
+            )
+            connection.row_factory = sqlite3.Row
 
         try:
             yield connection
@@ -67,8 +90,24 @@ class MemoryManager:
             connection.close()
 
     def _initialize_database(self) -> None:
-        with self._connect() as connection:
-            connection.execute("""
+        if self.use_postgres:
+            create_table_sql = """
+                CREATE TABLE IF NOT EXISTS memories (
+                    memory_id TEXT PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    memory_type TEXT NOT NULL,
+                    scope TEXT NOT NULL,
+                    importance DOUBLE PRECISION NOT NULL,
+                    confidence DOUBLE PRECISION NOT NULL,
+                    created_at TEXT NOT NULL,
+                    last_used TEXT,
+                    expires_at TEXT,
+                    source TEXT,
+                    related_context JSONB NOT NULL
+                )
+            """
+        else:
+            create_table_sql = """
                 CREATE TABLE IF NOT EXISTS memories (
                     memory_id TEXT PRIMARY KEY,
                     content TEXT NOT NULL,
@@ -82,8 +121,10 @@ class MemoryManager:
                     source TEXT,
                     related_context TEXT NOT NULL
                 )
-            """)
+            """
 
+        with self._connect() as connection:
+            connection.execute(create_table_sql)
     @staticmethod
     def _datetime_to_text(value: datetime | None) -> str | None:
         if value is None:
@@ -122,6 +163,7 @@ class MemoryManager:
                 "related_context must be JSON-serializable."
             ) from exc
 
+
     def _save_memory(self, memory: Memory) -> None:
         self._validate_memory(memory)
 
@@ -139,20 +181,35 @@ class MemoryManager:
             json.dumps(memory.related_context),
         )
 
-        with self._connect() as connection:
-            connection.execute("""
+        if self.use_postgres:
+            sql = """
                 INSERT INTO memories (
-                    memory_id,
-                    content,
-                    memory_type,
-                    scope,
-                    importance,
-                    confidence,
-                    created_at,
-                    last_used,
-                    expires_at,
-                    source,
-                    related_context
+                    memory_id, content, memory_type, scope,
+                    importance, confidence, created_at, last_used,
+                    expires_at, source, related_context
+                )
+                VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s::jsonb
+                )
+                ON CONFLICT (memory_id) DO UPDATE SET
+                    content = EXCLUDED.content,
+                    memory_type = EXCLUDED.memory_type,
+                    scope = EXCLUDED.scope,
+                    importance = EXCLUDED.importance,
+                    confidence = EXCLUDED.confidence,
+                    created_at = EXCLUDED.created_at,
+                    last_used = EXCLUDED.last_used,
+                    expires_at = EXCLUDED.expires_at,
+                    source = EXCLUDED.source,
+                    related_context = EXCLUDED.related_context
+            """
+        else:
+            sql = """
+                INSERT INTO memories (
+                    memory_id, content, memory_type, scope,
+                    importance, confidence, created_at, last_used,
+                    expires_at, source, related_context
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(memory_id) DO UPDATE SET
@@ -166,7 +223,11 @@ class MemoryManager:
                     expires_at = excluded.expires_at,
                     source = excluded.source,
                     related_context = excluded.related_context
-            """, values)
+            """
+
+        with self._connect() as connection:
+            connection.execute(sql, values)
+
 
     def _load_memories(self) -> dict[str, Memory]:
         with self._connect() as connection:
@@ -177,6 +238,11 @@ class MemoryManager:
         loaded: dict[str, Memory] = {}
 
         for row in rows:
+            related_context = row["related_context"]
+
+            if isinstance(related_context, str):
+                related_context = json.loads(related_context)
+
             memory = Memory(
                 memory_id=row["memory_id"],
                 content=row["content"],
@@ -188,12 +254,13 @@ class MemoryManager:
                 last_used=self._text_to_datetime(row["last_used"]),
                 expires_at=self._text_to_datetime(row["expires_at"]),
                 source=row["source"],
-                related_context=json.loads(row["related_context"]),
+                related_context=related_context,
             )
 
             loaded[memory.memory_id] = memory
 
         return loaded
+
 
     def add_memory(self, memory: Memory) -> None:
         self._validate_memory(memory)
@@ -206,18 +273,22 @@ class MemoryManager:
     def get_all_memories(self) -> list[Memory]:
         return list(self.memories.values())
 
+
     def delete_memory(self, memory_id: str) -> bool:
         if memory_id not in self.memories:
             return False
 
+        placeholder = "%s" if self.use_postgres else "?"
+
         with self._connect() as connection:
             connection.execute(
-                "DELETE FROM memories WHERE memory_id = ?",
+                f"DELETE FROM memories WHERE memory_id = {placeholder}",
                 (memory_id,),
             )
 
         del self.memories[memory_id]
         return True
+
 
     def remove_expired_memories(
         self,
@@ -238,9 +309,11 @@ class MemoryManager:
         if not expired_ids:
             return 0
 
+        placeholder = "%s" if self.use_postgres else "?"
+
         with self._connect() as connection:
             connection.executemany(
-                "DELETE FROM memories WHERE memory_id = ?",
+                f"DELETE FROM memories WHERE memory_id = {placeholder}",
                 [(memory_id,) for memory_id in expired_ids],
             )
 
@@ -249,13 +322,14 @@ class MemoryManager:
 
         return len(expired_ids)
 
+
     def update_memory(self, memory_id: str, **updates) -> bool:
         memory = self.memories.get(memory_id)
 
         if memory is None:
             return False
 
-        
+
         allowed_fields = {
             item.name for item in fields(Memory)
         }

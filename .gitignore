@@ -222,3 +222,8 @@ data/
 *.db
 *.sqlite
 *.sqlite3
+
+# Local secrets
+.env
+aura api key.txt
+db pass.txt

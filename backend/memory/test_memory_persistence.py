@@ -1,25 +1,21 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
-from backend.agent.memory_augmented_response import (
-    MemoryAugmentedResponse,
-)
 from backend.memory.memory_manager import Memory, MemoryManager
-from backend.context.relevance_engine import RelevanceEngine
 
 
 def main():
     with tempfile.TemporaryDirectory() as temp_dir:
-        manager = MemoryManager(
-            db_path=Path(temp_dir) / "test_memory.db"
-        )
+        db_path = Path(temp_dir) / "test_memory.db"
 
-        manager.add_memory(
+        # Step 1: Create a manager and save a memory.
+        manager1 = MemoryManager(db_path=db_path)
+
+        manager1.add_memory(
             Memory(
-                memory_id="test_vegetarian",
-                content="The user prefers vegetarian food.",
+                memory_id="persistence_test_001",
+                content="AURA persistence test memory",
                 memory_type="long_term",
                 scope="global",
                 importance=0.9,
@@ -27,51 +23,20 @@ def main():
             )
         )
 
-        manager.add_memory(
-            Memory(
-                memory_id="test_cooking",
-                content="The user is currently learning to cook paneer.",
-                memory_type="episodic",
-                scope="contextual",
-                importance=0.8,
-                confidence=1.0,
-                related_context={"activity": "cooking"},
-            )
-        )
+        assert manager1.get_memory("persistence_test_001") is not None
+        print("Memory saved: PASS")
 
-        response_generator = MemoryAugmentedResponse(
-            memory_manager=manager,
-            relevance_engine=RelevanceEngine(),
-        )
+        # Step 2: Create a NEW manager using the same database.
+        manager2 = MemoryManager(db_path=db_path)
 
-        with patch(
-            "backend.agent.memory_augmented_response.ask_model",
-            return_value="Try a vegetarian paneer dinner with lentils.",
-        ) as mock_model:
+        restored = manager2.get_memory("persistence_test_001")
 
-            answer = response_generator.answer(
-                question="Suggest a high-protein vegetarian dinner.",
-                context={"activity": "cooking"},
-            )
+        assert restored is not None, "Memory was not restored from the database."
+        assert restored.content == "AURA persistence test memory"
+        print("Memory survives manager restart: PASS")
+        print("Persisted content verified: PASS")
 
-            assert answer == (
-                "Try a vegetarian paneer dinner with lentils."
-            )
-
-            mock_model.assert_called_once()
-
-            prompt_sent = mock_model.call_args.kwargs["prompt"]
-
-            assert "The user prefers vegetarian food." in prompt_sent
-            
-            assert "Suggest a high-protein vegetarian dinner." in prompt_sent
-
-            print("Response generation: PASS")
-            print("Relevant memories included: PASS")
-            print("User question included: PASS")
-            print("Mock model called once: PASS")
-
-    print("\nMemory-augmented response tests completed.")
+    print("\nMemory persistence tests completed.")
 
 
 if __name__ == "__main__":
