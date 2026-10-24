@@ -10,11 +10,15 @@ from pydantic import BaseModel, Field, field_validator
 
 from backend.memory.memory_manager import Memory, MemoryManager
 from backend.config import NEBIUS_API_KEY, MODEL_NAME
+from backend.agent.memory_augmented_response import MemoryAugmentedResponse
 
 app = FastAPI(title="AURA")
 
 # Initialize persistent memory
 memory_manager = MemoryManager()
+response_service = MemoryAugmentedResponse(
+    memory_manager=memory_manager
+)
 
 # Shared-token authentication for protected API endpoints
 def verify_api_token(
@@ -53,6 +57,9 @@ class MemoryCreate(BaseModel):
     importance: float = Field(default=0.5, ge=0, le=1)
     confidence: float = Field(default=1.0, ge=0, le=1)
 
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=10000)
+    conversation_id: str | None = None
 
 # Request model for incoming voice events
 class VoiceInputEvent(BaseModel):
@@ -154,3 +161,41 @@ def receive_voice_event(event: VoiceInputEvent):
         "event_type": event.event_type,
         "received_at": received_at.isoformat(),
     }
+
+@app.post("/chat", dependencies=[Depends(verify_api_token)])
+def chat(data: ChatRequest):
+    message = data.message.strip()
+
+    if not message:
+        raise HTTPException(
+            status_code=422,
+            detail="Message cannot be empty.",
+        )
+
+    try:
+        answer = response_service.answer(
+            question=message,
+        )
+
+        if not answer or not answer.strip():
+            raise HTTPException(
+                status_code=502,
+                detail="The AI model returned an empty response.",
+            )
+
+        return {
+            "answer": answer,
+            "conversation_id": data.conversation_id,
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        import logging
+        logging.exception("AURA chat request failed")
+
+        raise HTTPException(
+            status_code=502,
+            detail="AURA could not generate a response.",
+        )
