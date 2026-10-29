@@ -1,3 +1,7 @@
+import logging
+
+from fastapi import File, UploadFile
+from backend.vision.vision_client import analyze_image
 
 from datetime import datetime, timezone
 from typing import Literal
@@ -199,3 +203,64 @@ def chat(data: ChatRequest):
             status_code=502,
             detail="AURA could not generate a response.",
         )
+
+
+@app.post("/vision/analyze", dependencies=[Depends(verify_api_token)])
+async def analyze_camera_image(file: UploadFile = File(...)):
+    allowed_types = {
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+    }
+
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=415,
+            detail="Unsupported image type. Use JPEG, PNG, or WebP.",
+        )
+
+    max_size = 5 * 1024 * 1024  # 5 MB
+    image_bytes = await file.read(max_size + 1)
+
+    if not image_bytes:
+        raise HTTPException(status_code=400, detail="Empty image.")
+    if len(image_bytes) > max_size:
+        raise HTTPException(status_code=413, detail="Image exceeds 5 MB.")
+
+    import base64
+    import os
+    import tempfile
+
+    suffix = {
+        "image/jpeg": ".jpg",
+        "image/png": ".png",
+        "image/webp": ".webp",
+    }[file.content_type]
+
+    temp_path = None
+
+    try:
+        with tempfile.NamedTemporaryFile(
+            suffix=suffix,
+            delete=False,
+        ) as temp_file:
+            temp_file.write(image_bytes)
+            temp_path = temp_file.name
+
+        description = analyze_image(
+            temp_path,
+            prompt="Describe the visible scene and relevant objects concisely.",
+        )
+
+        return {"description": description}
+
+    except Exception:
+        logging.exception("AURA vision analysis failed")
+        raise HTTPException(
+            status_code=502,
+            detail="AURA could not analyze the image.",
+        )
+
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.remove(temp_path)
