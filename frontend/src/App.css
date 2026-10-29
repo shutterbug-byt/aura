@@ -140,7 +140,7 @@ svg { display: block; width: 21px; height: 21px; }
   -webkit-mask-composite: xor;
   mask-composite: exclude;
 }
-.talk-border-trace svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.talk-border-trace svg { position: absolute; inset: 0; width: 100%; height: 100%; animation: border-trace-breathe 7s ease-in-out infinite; }
 .talk-border-trace rect {
   width: calc(100% - 2px);
   height: calc(100% - 2px);
@@ -148,11 +148,15 @@ svg { display: block; width: 21px; height: 21px; }
   stroke-linecap: round;
   animation: border-trace-travel 22s linear infinite;
 }
-.border-trace-soft { stroke-width: 2px; stroke-dasharray: 4 96; opacity: 0.28; filter: blur(0.45px); }
-.border-trace-core { stroke-width: 1px; stroke-dasharray: 2.5 97.5; opacity: 0.85; }
+.border-trace-soft { --trace-offset: 3.6px; stroke-width: 2px; stroke-dasharray: 7.2 92.8; opacity: 0.14; filter: blur(1px); }
+.border-trace-core { stroke-width: 1.3px; opacity: 0.075; }
 @keyframes border-trace-travel {
-  from { stroke-dashoffset: 0; }
-  to { stroke-dashoffset: -100; }
+  from { stroke-dashoffset: var(--trace-offset); }
+  to { stroke-dashoffset: calc(var(--trace-offset) - 100px); }
+}
+@keyframes border-trace-breathe {
+  0%, 100% { opacity: 0.72; }
+  50% { opacity: 1; }
 }
 .talk-bar:hover { border-color: #ffffff50; }
 .talk-bar:focus-within { border-color: #b3b3bc; box-shadow: inset 0 1px 0 #ffffff12, 0 0 0 3px #ffffff0c, 0 14px 30px #00000050; }

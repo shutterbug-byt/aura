@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import type { CSSProperties } from 'react'
 import ParticleField from './components/ParticleField'
 import { WORDMARK_LETTERS, WORDMARK_STROKE, WORDMARK_VIEWBOX } from './components/wordmarkGeometry'
 import './App.css'
@@ -18,6 +19,8 @@ function Icon({ name }: { name: IconName }) {
 
 const navItems = ['Home', 'Explore', 'Tools', 'Settings'] as const
 const navIcons: IconName[] = ['home', 'explore', 'tools', 'settings']
+// Concentric dash lengths form a smooth light envelope along the perimeter.
+const borderTraceLengths = Array.from({ length: 24 }, (_, index) => 0.2 + index * 0.28)
 
 function App() {
   const wordmarkLettersId = useId()
@@ -86,7 +89,10 @@ function App() {
           <span className="talk-border-trace" aria-hidden="true">
             <svg focusable="false">
               <rect className="border-trace-soft" x="1" y="1" rx="31" pathLength="100" />
-              <rect className="border-trace-core" x="1" y="1" rx="31" pathLength="100" />
+              {borderTraceLengths.map(length => (
+                <rect key={length} className="border-trace-core" x="1" y="1" rx="31" pathLength="100"
+                  style={{ '--trace-offset': `${length / 2}px`, strokeDasharray: `${length} ${100 - length}` } as CSSProperties} />
+              ))}
             </svg>
           </span>
           <span className="spark"><Icon name="spark" /></span>
