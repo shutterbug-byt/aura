@@ -4,3 +4,4 @@ uvicorn
 python-dotenv
 openai
 psycopg[binary]
+python-multipart
