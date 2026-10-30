@@ -190,9 +190,13 @@ def receive_voice_event(event: VoiceInputEvent):
     received_at = datetime.now(timezone.utc)
 
     try:
+        with vision_context_lock:
+            visual_snapshot = deepcopy(latest_vision_context)
+
         answer = answer_user(
             message=event.transcript,
             memory_manager=memory_manager,
+            visual_context=visual_snapshot,
         )
 
         if not isinstance(answer, str) or not answer.strip():

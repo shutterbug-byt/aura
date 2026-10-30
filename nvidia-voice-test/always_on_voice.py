@@ -69,20 +69,26 @@ def process_utterance(samples):
 
         transcript = transcript.strip()
 
-        wake_word = "aura"
-        if wake_word not in transcript.lower():
-           print("Wake phrase not detected. Ignoring background audio.")
-           return
-
-        # Remove the wake phrase before sending the command to AURA.
         import re
-        transcript = re.sub(
-            r"\baura\b", "", transcript, flags=re.IGNORECASE
-        ).strip(" ,.!?")
+
+        # Accept the wake word only at the start of the transcript.
+        match = re.match(
+            r"^\s*(?:hey\s+)?aura\b[\s,.:!?-]*(.*)$",
+            transcript,
+            flags=re.IGNORECASE,
+        )
+
+        if not match:
+            print(f"Wake phrase not detected in: {transcript!r}")
+            return
+
+        transcript = match.group(1).strip()
 
         if not transcript:
             print("Wake phrase detected. Please say your command after AURA.")
             return
+
+        print(f"\nYou: {transcript}")
 
         print(f"\nYou: {transcript}")
 

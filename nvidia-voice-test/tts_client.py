@@ -36,6 +36,8 @@ def speak_text(text: str, output_path: Path | None = None) -> Path:
             "en-US",
             "--output",
             str(output_path),
+            "--device",
+            "cpu",
             "--force",
         ],
         check=True,

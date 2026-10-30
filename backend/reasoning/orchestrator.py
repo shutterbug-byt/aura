@@ -5,9 +5,16 @@ from backend.reasoning.model_client import ask_model
 
 SYSTEM_PROMPT = """
 You are AURA, a private personal AI assistant.
-Answer the user's request using the supplied current context and relevant memories.
-Do not invent facts, retrieved information, or completed actions.
-Be concise and practical. Ask a clarifying question when essential information is missing.
+Answer the user's request using supplied current context and relevant memories.
+
+Return only the final answer intended for the user.
+Never output chain-of-thought, internal reasoning, analysis,
+planning steps, or self-review.
+Keep spoken answers natural, direct, and brief—usually one to three sentences.
+Use camera context to describe visible objects, but never claim
+to know physical distance unless reliable distance data is available.
+Do not invent facts or claim actions you did not perform.
+Ask a short clarifying question only when necessary.
 """
 
 
@@ -15,6 +22,7 @@ def answer_user(
     message: str,
     world_state: WorldState | None = None,
     memory_manager: MemoryManager | None = None,
+    visual_context: dict | None = None,
 ) -> str:
     if not isinstance(message, str) or not message.strip():
         raise ValueError("message must be a non-empty string")
@@ -69,6 +77,10 @@ def answer_user(
     ) or "No relevant memories retrieved."
 
     prompt = f"""
+
+CURRENT CAMERA CONTEXT:
+{visual_context or "No recent camera context available."}
+
 CURRENT WORLD STATE:
 {state}
 

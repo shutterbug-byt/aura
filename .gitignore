@@ -36,3 +36,7 @@ Thumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local secrets and voice-test recordings
+.env
+nvidia-voice-test/*.wav
