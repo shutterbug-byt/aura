@@ -17,7 +17,6 @@ EVENT_MODULE_PATH = BASE_DIR / "transcript_event.py"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.reasoning.orchestrator import answer_user
 
 
 spec = importlib.util.spec_from_file_location(
@@ -58,8 +57,20 @@ def main():
     response = send_voice_event(event)
     print(f"Backend response: {response}")
 
-    print("\n[4/4] Generating response with AURA reasoning...")
-    answer = answer_user(transcript)
+    print("\n[4/4] Using AURA response from backend...")
+
+    backend_body = response.get("response", {})
+    if not isinstance(backend_body, dict):
+      raise RuntimeError("Backend returned an invalid response body.")
+
+    answer = backend_body.get("answer")
+
+    if not isinstance(answer, str) or not answer.strip():
+      raise RuntimeError(
+        "Backend /events/voice response did not contain a valid 'answer'."
+      )
+
+    print(f"\nAURA: {answer}")
     if not answer or not answer.strip():
         raise RuntimeError("AURA reasoning returned an empty response.")
 

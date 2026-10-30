@@ -1,10 +1,14 @@
 import logging
+import threading
+from copy import deepcopy
 
 from fastapi import File, UploadFile
 from backend.vision.vision_client import analyze_image
 
 from datetime import datetime, timezone
 from typing import Literal
+
+from backend.reasoning.orchestrator import answer_user
 
 import os
 import secrets
@@ -23,6 +27,16 @@ memory_manager = MemoryManager()
 response_service = MemoryAugmentedResponse(
     memory_manager=memory_manager
 )
+
+# Latest camera context shared between perception and chat.
+vision_context_lock = threading.Lock()
+
+latest_vision_context = {
+    "current_summary": "",
+    "observations": [],
+    "observation_count": 0,
+    "retention_seconds": 60,
+}
 
 # Shared-token authentication for protected API endpoints
 def verify_api_token(
@@ -64,6 +78,22 @@ class MemoryCreate(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=10000)
     conversation_id: str | None = None
+
+
+class VisionObservation(BaseModel):
+    age_seconds: float = Field(ge=0, le=3600)
+    description: str = Field(min_length=1, max_length=2000)
+
+
+class VisionContextUpdate(BaseModel):
+    current_summary: str = Field(default="", max_length=4000)
+    observations: list[VisionObservation] = Field(
+        default_factory=list,
+        max_length=20,
+    )
+    observation_count: int = Field(default=0, ge=0)
+    retention_seconds: int = Field(default=60, ge=1, le=3600)
+
 
 # Request model for incoming voice events
 class VoiceInputEvent(BaseModel):
@@ -153,17 +183,59 @@ def create_memory(data: MemoryCreate):
     }
 
 
+
 @app.post("/events/voice", dependencies=[Depends(verify_api_token)])
 def receive_voice_event(event: VoiceInputEvent):
-    # Validate and acknowledge the incoming voice event.
-    # Memory storage and reasoning integration are not implemented here yet.
+    """Process a voice transcript through AURA's reasoning orchestrator."""
     received_at = datetime.now(timezone.utc)
 
+    try:
+        answer = answer_user(
+            message=event.transcript,
+            memory_manager=memory_manager,
+        )
+
+        if not isinstance(answer, str) or not answer.strip():
+            raise HTTPException(
+                status_code=502,
+                detail="AURA reasoning returned an empty response.",
+            )
+
+        return {
+            "status": "success",
+            "event_id": event.event_id,
+            "transcript": event.transcript,
+            "answer": answer.strip(),
+            "reasoning_pipeline": "orchestrator",
+            "received_at": received_at.isoformat(),
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        logging.exception("AURA voice reasoning failed")
+        raise HTTPException(
+            status_code=502,
+            detail="AURA could not process the voice transcript.",
+        )
+
+
+@app.post(
+    "/vision/context",
+    dependencies=[Depends(verify_api_token)],
+)
+def update_vision_context(data: VisionContextUpdate):
+    """Receive the latest camera-context snapshot."""
+    snapshot = data.model_dump()
+
+    with vision_context_lock:
+        latest_vision_context.clear()
+        latest_vision_context.update(snapshot)
+
     return {
-        "status": "accepted",
-        "event_id": event.event_id,
-        "event_type": event.event_type,
-        "received_at": received_at.isoformat(),
+        "status": "updated",
+        "observation_count": len(snapshot["observations"]),
     }
 
 @app.post("/chat", dependencies=[Depends(verify_api_token)])
@@ -177,8 +249,12 @@ def chat(data: ChatRequest):
         )
 
     try:
+        with vision_context_lock:
+            visual_snapshot = deepcopy(latest_vision_context)
+
         answer = response_service.answer(
             question=message,
+            visual_context=visual_snapshot,
         )
 
         if not answer or not answer.strip():

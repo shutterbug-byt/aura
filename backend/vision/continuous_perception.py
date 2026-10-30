@@ -16,10 +16,31 @@ from dotenv import load_dotenv
 load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 
 API_URL = "http://127.0.0.1:8000/vision/analyze"
+CONTEXT_API_URL = "http://127.0.0.1:8000/vision/context"
 SAMPLE_INTERVAL = 5.0
 REQUEST_TIMEOUT = 90
 SUMMARY_INTERVAL = 20.0
 ACTIVITY_INFERENCE_INTERVAL = 15.0
+
+def publish_context(session, token, snapshot):
+    """Send the latest camera context to the AURA backend."""
+    payload = {
+        "current_summary": snapshot.get("current_summary", ""),
+        "observations": snapshot.get("observations", [])[-20:],
+        "observation_count": snapshot.get("observation_count", 0),
+        "retention_seconds": snapshot.get("retention_seconds", 60),
+    }
+
+    try:
+        response = session.post(
+            CONTEXT_API_URL,
+            headers={"Authorization": f"Bearer {token}"},
+            json=payload,
+            timeout=5,
+        )
+        response.raise_for_status()
+    except requests.RequestException as exc:
+        print(f"[Vision context] Publish failed: {exc}")
 
 def analyze_frames(frame_queue, stop_event, token, context):
     """Analyze sampled frames in the background, independently of capture."""
@@ -52,6 +73,7 @@ def analyze_frames(frame_queue, stop_event, token, context):
                     context.add_observation(description)
 
                     snapshot = context.get_context()
+                    publish_context(session, token, snapshot)
                     
                     now = time.monotonic()
 
@@ -98,6 +120,7 @@ def analyze_frames(frame_queue, stop_event, token, context):
                             )
 
                             context.set_summary(scene["summary"])
+                            publish_context(session, token, context.get_context())
 
                             print("\n[AURA current scene]")
                             print(scene["summary"])
